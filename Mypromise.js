@@ -24,6 +24,15 @@ function runMicroTask(callback) {
 }
 
 /**
+ * 判断obj是否是promise
+ * @param {*} obj 
+ * @returns 
+ */
+function isPromise(obj) {
+    return !!(obj && typeof obj === "object" && typeof obj.then === "function");
+}
+
+/**
  * 创建一个Promise
  * param {function} executor 任务执行器，立即执行
  */
@@ -86,11 +95,29 @@ class MyPromise {
      * 处理单个handler
      * @param {*} handler 
      */
-    _runOneHandler(handler) {
-        console.log(handler);
-        if(this._state === handler.state) {
-            handler.executor();
-        }
+    _runOneHandler({executor, reject, resolve, state}) {
+        runMicroTask(() => {
+            if(this._state !== state) {
+                return;
+            }
+            if(typeof executor !== "function") {
+                // 不是一个函数, 状态穿透
+                this._state === FULFILLED
+                    ? resolve(this._value)
+                    : reject(this._value);
+                return;
+            }
+            try{
+                const result = executor(this._value);
+                if(isPromise(result)) {
+                    result.then(resolve, reject);
+                } else {
+                    resolve(result);
+                }
+            } catch (error) {
+                reject(error);
+            }
+        })
     }
 
     _changeState(newState, value) {
@@ -109,7 +136,6 @@ class MyPromise {
      */
     _resolve(data) {
         this._changeState(FULFILLED, data);
-        console.log("完成", data)
     }
     /**
      * 改变状态和数据
@@ -118,17 +144,34 @@ class MyPromise {
      */
     _reject(reason) {
         this._changeState(REJECTED, reason);
-        console.log("失败", reason)
     }
 }
  
-const pro = new MyPromise((resolve, reject) => {
-    reject(3);
-})
+// const pro = new Promise((resolve, reject) => {
+//     resolve(1);
+// })
 
-pro.then(function A() {
-    console.log(2);
-}, function A2(){});
-pro.then(function B() {}, function B2(){});
+// pro.then((data) => {
+//     console.log(data);
+//     return new MyPromise((resolve) => {
+//         resolve(2);
+//     })
+// })
+// .then((data) => {
+//     console.log(data);
+// })
 
-console.log(pro);
+// 互操作
+function delay(duration) {
+    return new MyPromise((resolve) => {
+        setTimeout(resolve, duration);
+    });
+}
+
+(async function () {
+    console.log("start");
+    await delay(5000);
+    console.log("ok");
+})()
+
+// TODO: 实现all、race 静态方法
