@@ -17,6 +17,18 @@ class MyPromise {
         }
     }
 
+    /**
+     * then function returns a new promise object
+     * Promise A+规范的then, 函数会放到微队列中
+     * @param {*} onFulfilled 成功之后调用
+     * @param {*} onRejected 失败时调用
+     */
+    then(onFulfilled, onRejected) {
+        return new MyPromise((resolve, reject) => {
+            // TODO: 
+        })
+    }
+
     _changeState(newState, value) {
         if(this._state !== PENDING) {
             // 当前状态已经更改
