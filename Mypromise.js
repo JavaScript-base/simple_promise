@@ -50,6 +50,7 @@ class MyPromise {
         return new MyPromise((resolve, reject) => {
             this._pushHandlers(onFulfilled, FULFILLED, resolve, reject);
             this._pushHandlers(onRejected, REJECTED, resolve, reject);
+            this._runHandlers(); // 执行队列
         })
     }
 
@@ -67,6 +68,28 @@ class MyPromise {
         })
     }
 
+    /**
+     * executor queue
+     */
+    _runHandlers() {
+        if(this._state === PENDING) {
+            return;
+        }
+        // 循环
+        for(const handler of this._handlers) {
+            this._runOneHandler(handler);
+            this._handlers.shift(); // 执行一个删除一个
+        }
+    }
+
+    /**
+     * 处理单个handler
+     * @param {*} handler 
+     */
+    _runOneHandler(handler) {
+        handler();
+    }
+
     _changeState(newState, value) {
         if(this._state !== PENDING) {
             // 当前状态已经更改
@@ -74,6 +97,7 @@ class MyPromise {
         }
         this._state = newState;
         this._value = value;
+        this._runHandlers();
     }
     /**
      * 改变状态和数据
@@ -96,11 +120,10 @@ class MyPromise {
 }
  
 const pro = new MyPromise((resolve, reject) => {
-    setTimeout(function() {
-        resolve(1);
-        console.log(pro);
-    })
+    resolve(1);
 })
 
 pro.then(function A() {}, function A2(){});
 pro.then(function B() {}, function B2(){});
+
+console.log(pro);
