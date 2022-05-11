@@ -76,8 +76,8 @@ class MyPromise {
             return;
         }
         // 循环
-        for(const handler of this._handlers) {
-            this._runOneHandler(handler);
+        while(this._handlers[0]) {
+            this._runOneHandler(this._handlers[0]);
             this._handlers.shift(); // 执行一个删除一个
         }
     }
@@ -87,7 +87,10 @@ class MyPromise {
      * @param {*} handler 
      */
     _runOneHandler(handler) {
-        handler();
+        console.log(handler);
+        if(this._state === handler.state) {
+            handler.executor();
+        }
     }
 
     _changeState(newState, value) {
@@ -120,10 +123,12 @@ class MyPromise {
 }
  
 const pro = new MyPromise((resolve, reject) => {
-    resolve(1);
+    reject(3);
 })
 
-pro.then(function A() {}, function A2(){});
+pro.then(function A() {
+    console.log(2);
+}, function A2(){});
 pro.then(function B() {}, function B2(){});
 
 console.log(pro);
